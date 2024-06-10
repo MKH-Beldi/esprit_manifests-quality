@@ -1,0 +1,80 @@
+version: '3.8'
+name: monitoring
+networks:
+  monitoring:
+    driver: bridge
+volumes:
+  # prometheus_data: {} 
+  prometheus: {}
+  grafana_data: {}
+services:
+  prometheus:
+    image: prom/prometheus:v2.44.0
+    container_name: prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./prometheus/rules:/etc/prometheus/rules
+      - prometheus:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - 9090:9090
+    expose:
+      - 9090
+    networks:
+      - monitoring
+  alertmanager:
+    image: prom/alertmanager:v0.25.0
+    volumes:
+      - ./alertmanager/:/etc/alertmanager/
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/alertmanager/config.yml'
+    ports:
+      - 9093:9093
+    expose:
+      - 9093
+    networks:
+      - monitoring
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.12.1
+    ports:
+      - 9187:9187
+    environment:
+      DATA_SOURCE_NAME: "postgresql://postgres:pgpgPwMaster@192.168.0.126:5432/postgres?sslmode=disable"
+    networks:
+      - monitoring
+  oracledb-exporter:
+    image: ghcr.io/iamseth/oracledb_exporter:0.6.0
+    environment:
+      DATA_SOURCE_NAME: "oracle://zabbix_dsi:zabbix_dsi@192.168.3.13:1521/bdesp10n"
+    command:
+      - '--custom.metrics=/etc/oracledb-exporter/custom-metrics.toml'
+    ports:
+      - 9161:9161
+    volumes:
+      - ./oracle-exporter/:/etc/oracledb-exporter/
+    networks:
+      - monitoring
+  grafana:
+    image: grafana/grafana:9.5.2
+    container_name: grafana
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      #      - GF_SECURITY_ADMIN_USER=${ADMIN_USER}
+      #      - GF_SECURITY_ADMIN_PASSWORD=${ADMIN_PASSWORD}
+      - GF_USERS_ALLOW_SIGN_UP=false
+    restart: unless-stopped
+    ports:
+      - 3030:3000
+    expose:
+      - 3000
+    networks:
+      - monitoring

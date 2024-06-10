@@ -1,0 +1,46 @@
+groups:
+- name: Oracle-Database
+  rules:
+  - alert: DatabaseDown
+    expr: |
+      oracledb_up < 0
+    for: 10m
+    labels:
+      severity: page
+    annotations:
+      summary: Connection with database not available
+  - alert: HighResourceUtilization
+    expr: |
+      (oracledb_resource_current_utilization / oracledb_resource_limit_value) > 0.85
+      and oracledb_resource_limit_value > 0
+    for: 10m
+    labels:
+      severity: page
+    annotations:
+      summary: High resource utilization of resource {{$labels.resource_name}}
+  - alert: UsersTablespaceFull
+    expr: |
+      (oracledb_tablespace_bytes /
+      (oracledb_tablespace_bytes + oracledb_tablespace_free))
+      > 0.85
+    for: 10m
+    labels:
+      severity: page
+    annotations:
+      summary: Tablespace almost full {{$labels.tablespace}}
+  - alert: SlowQueriesP99
+    expr: |
+      oracledb_slow_queries_p99_time_usecs * 1000000 > 10
+    for: 10m
+    labels:
+      severity: page
+    annotations:
+      summary: Percentile 99 of time elapsed in queries higher than 10 seconds
+  - alert: BigQueriesP99
+    expr: |
+      oracledb_big_queries_p99_rows > 1000000
+    for: 10m
+    labels:
+      severity: page
+    annotations:
+      summary: Percentile 99 of returned rows in queries higher than 1M

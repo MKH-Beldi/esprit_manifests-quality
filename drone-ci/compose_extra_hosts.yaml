@@ -1,0 +1,5 @@
+version: '3.8'
+services:
+ extra_hosts:
+  extra_hosts:
+    - "ci-qa-dsi-io.esprit.tn:192.168.0.128"
